@@ -4,9 +4,8 @@ from mysql.connector import Error
 import logging
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"  # Needed for flash messages
+app.secret_key = "your_secret_key"
 
-# Database configuration
 db_config = {
     'host': 'bloodbridge-db.cjk8kyagmto0.us-east-1.rds.amazonaws.com',
     'user': 'admin',
@@ -14,14 +13,12 @@ db_config = {
     'database': 'Bloodbridge'
 }
 
-# Create a connection pool
 cnxpool = MySQLConnectionPool(
     pool_name="mypool",
     pool_size=5,
     **db_config
 )
 
-# Function to establish a database connection
 def get_db_connection():
     try:
         return cnxpool.get_connection()
@@ -34,7 +31,7 @@ def test_db_connection():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT DATABASE();")  # Test query to check connection
+        cursor.execute("SELECT DATABASE();")
         db_name = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -57,14 +54,12 @@ def register():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check if the user already exists
         cursor.execute("SELECT * FROM register WHERE email = %s", (email,))
         user = cursor.fetchone()
         if user:
             flash("Email already exists! Please log in.")
-            return redirect(url_for('login', email=email))  # redirect to login page
+            return redirect(url_for('login', email=email))
 
-        # Insert the new user into the database
         cursor.execute("INSERT INTO register (fullname, email, password, blood_type) VALUES (%s, %s, %s, %s)", (fullname, email, password, blood_type))
         conn.commit()
         cursor.close()
@@ -95,7 +90,6 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Verify login credentials
         cursor.execute("SELECT * FROM register WHERE email = %s AND password = %s", (email, password))
         user = cursor.fetchone()
         cursor.close()
@@ -125,7 +119,6 @@ def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Get the user's blood group
     cursor.execute("SELECT fullname, email, blood_type FROM register WHERE email = %s", (email,))
     user_data = cursor.fetchone()
     if user_data is None:
@@ -138,7 +131,6 @@ def dashboard():
         'blood_type': user_data[2]
     }
 
-    # Get blood requests for the user's blood group
     cursor.execute("SELECT * FROM request WHERE blood_type = %s AND status = 'pending'", (user_data['blood_type'],))
     requests = cursor.fetchall()
     
@@ -175,7 +167,6 @@ def req():
         cursor.execute("SELECT id FROM register WHERE email = %s", (email,))
         requester_id = cursor.fetchone()[0]
 
-        # Insert the blood request into the database
         try:
             cursor.execute("INSERT INTO request (requester_id, location, blood_type, urgency) VALUES (%s, %s, %s, %s)", (requester_id, location, blood_type, urgency))
             conn.commit()
